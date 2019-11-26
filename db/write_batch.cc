@@ -1,4 +1,4 @@
-//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
+﻿//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
@@ -901,13 +901,16 @@ Status WriteBatchInternal::MarkRollback(WriteBatch* b, const Slice& xid) {
 Status WriteBatchInternal::Delete(WriteBatch* b, uint32_t column_family_id,
                                   const Slice& key) {
   LocalSavePoint save(b);
+  //
   WriteBatchInternal::SetCount(b, WriteBatchInternal::Count(b) + 1);
+
   if (column_family_id == 0) {
     b->rep_.push_back(static_cast<char>(kTypeDeletion));
   } else {
     b->rep_.push_back(static_cast<char>(kTypeColumnFamilyDeletion));
     PutVarint32(&b->rep_, column_family_id);
   }
+
   PutLengthPrefixedSlice(&b->rep_, key);
   b->content_flags_.store(b->content_flags_.load(std::memory_order_relaxed) |
                               ContentFlags::HAS_DELETE,

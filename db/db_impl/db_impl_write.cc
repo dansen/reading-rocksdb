@@ -1,4 +1,4 @@
-//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
+﻿//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
@@ -1785,7 +1785,9 @@ Status DB::Put(const WriteOptions& opt, ColumnFamilyHandle* column_family,
   size_t ts_sz = ts->size();
   WriteBatch batch(key.size() + ts_sz + value.size() + 24, /*max_bytes=*/0,
                    ts_sz);
+
   Status s = batch.Put(column_family, key, value);
+
   if (!s.ok()) {
     return s;
   }
@@ -1796,10 +1798,13 @@ Status DB::Put(const WriteOptions& opt, ColumnFamilyHandle* column_family,
   return Write(opt, &batch);
 }
 
+//删除操作
 Status DB::Delete(const WriteOptions& opt, ColumnFamilyHandle* column_family,
                   const Slice& key) {
+  //删除命令
   WriteBatch batch;
   batch.Delete(column_family, key);
+
   return Write(opt, &batch);
 }
 

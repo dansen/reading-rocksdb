@@ -1,4 +1,4 @@
-//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
+﻿//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
@@ -678,6 +678,7 @@ class ColumnFamilySet {
   // 1. DB mutex locked
   // 2. accessed from a single-threaded write thread
   std::unordered_map<std::string, uint32_t> column_families_;
+  //unordered_map是hash实现，查找效率更高
   std::unordered_map<uint32_t, ColumnFamilyData*> column_family_data_;
 
   uint32_t max_column_family_;
