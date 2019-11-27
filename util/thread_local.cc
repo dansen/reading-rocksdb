@@ -1,4 +1,4 @@
-//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
+﻿//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
@@ -270,6 +270,8 @@ ThreadLocalPtr::StaticMeta* ThreadLocalPtr::Instance() {
   // destruction order even when the main thread dies before any child threads.
   // However, thread_local is not supported in all compilers that accept -std=c++11
   // (e.g., eg Mac with XCode < 8. XCode 8+ supports thread_local).
+  // 全局变量 单例模式
+  // ThreadLocalPtr的对象可以有多个，但他们其实都在使用同一个ThreadLocalPtr::StaticMeta对象
   static ThreadLocalPtr::StaticMeta* inst = new ThreadLocalPtr::StaticMeta();
   return inst;
 }
@@ -404,6 +406,7 @@ void* ThreadLocalPtr::StaticMeta::Get(uint32_t id) const {
   return tls->entries[id].ptr.load(std::memory_order_acquire);
 }
 
+//设置值
 void ThreadLocalPtr::StaticMeta::Reset(uint32_t id, void* ptr) {
   auto* tls = GetThreadLocal();
   if (UNLIKELY(id >= tls->entries.size())) {
@@ -414,6 +417,7 @@ void ThreadLocalPtr::StaticMeta::Reset(uint32_t id, void* ptr) {
   tls->entries[id].ptr.store(ptr, std::memory_order_release);
 }
 
+//设置值
 void* ThreadLocalPtr::StaticMeta::Swap(uint32_t id, void* ptr) {
   auto* tls = GetThreadLocal();
   if (UNLIKELY(id >= tls->entries.size())) {
@@ -528,6 +532,7 @@ ThreadLocalPtr::~ThreadLocalPtr() {
 }
 
 void* ThreadLocalPtr::Get() const {
+  // 通过id访问
   return Instance()->Get(id_);
 }
 

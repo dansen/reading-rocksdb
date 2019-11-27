@@ -1,4 +1,4 @@
-//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
+﻿//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
@@ -59,6 +59,7 @@ uint8_t WriteThread::BlockingAwaitState(Writer* w, uint8_t goal_mask) {
   return state;
 }
 
+//占着cpu等待1us，免得使用线程
 uint8_t WriteThread::AwaitState(Writer* w, uint8_t goal_mask,
                                 AdaptationContext* ctx) {
   uint8_t state;
@@ -76,6 +77,7 @@ uint8_t WriteThread::AwaitState(Writer* w, uint8_t goal_mask,
     if ((state & goal_mask) != 0) {
       return state;
     }
+	// pause指令主要就是提升spin-wait-loop的性能
     port::AsmVolatilePause();
   }
 
@@ -140,8 +142,10 @@ uint8_t WriteThread::AwaitState(Writer* w, uint8_t goal_mask,
   const int sampling_base = 256;
 
   if (max_yield_usec_ > 0) {
+
     update_ctx = Random::GetTLSInstance()->OneIn(sampling_base);
 
+	// 进不进行Short-Wait其实也是有条件的
     if (update_ctx || yield_credit.load(std::memory_order_relaxed) >= 0) {
       // we're updating the adaptation statistics, or spinning has >
       // 50% chance of being shorter than max_yield_usec_ and causing no
@@ -152,11 +156,15 @@ uint8_t WriteThread::AwaitState(Writer* w, uint8_t goal_mask,
       // causes the goal to be met
       size_t slow_yield_count = 0;
 
+	  // 2. Short - Wait
+	  // Short-Wait循环的上限是max_yield_usec_ 100us
       auto iter_begin = spin_begin;
       while ((iter_begin - spin_begin) <=
              std::chrono::microseconds(max_yield_usec_)) {
+		// 将当前的时间片让给其他线程
         std::this_thread::yield();
 
+		// memory_order_acquire 本线程中,所有后续的读操作必须在本条原子操作完成后执行
         state = w->state.load(std::memory_order_acquire);
         if ((state & goal_mask) != 0) {
           // success
@@ -164,6 +172,7 @@ uint8_t WriteThread::AwaitState(Writer* w, uint8_t goal_mask,
           break;
         }
 
+		// 高度依赖clock进行计算
         auto now = std::chrono::steady_clock::now();
         if (now == iter_begin ||
             now - iter_begin >= std::chrono::microseconds(slow_yield_usec_)) {
@@ -182,11 +191,14 @@ uint8_t WriteThread::AwaitState(Writer* w, uint8_t goal_mask,
     }
   }
 
+  // 3. Long-Wait 很不幸，前两步的尝试都没有等到条件满足，只能通过代价最高的std::condition_variable::wait()来做
   if ((state & goal_mask) == 0) {
     TEST_SYNC_POINT_CALLBACK("WriteThread::AwaitState:BlockingWaiting", w);
     state = BlockingAwaitState(w, goal_mask);
   }
 
+  // ctx->value就是这个动态的开关，如果在Short-Wait中成功等到state条件满足，则增加value，如果Short-Wait没有成功等到条件满足而最终还是靠Long-Wait来等待，
+  // 则减少这个value，然后通过它是否大于0来决定下次是否需要进行Short-Wait，可以看到，如果Short-Wait大量命中，则value一定会远大于0，每次都进行Short-Wait。value的更新策略如下
   if (update_ctx) {
     // Since our update is sample based, it is ok if a thread overwrites the
     // updates by other threads. Thus the update does not have to be atomic.
