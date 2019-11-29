@@ -1,4 +1,4 @@
-// Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
+﻿// Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
@@ -377,6 +377,7 @@ struct DBOptions {
 
   // If true, an error is raised if the database already exists.
   // Default: false
+  // 数据库存在就报错，默认为false
   bool error_if_exists = false;
 
   // If true, RocksDB will aggressively check consistency of the data.
@@ -385,6 +386,7 @@ struct DBOptions {
   // Write operations.
   // In most cases you want this to be set to true.
   // Default: true
+  // 如果写失败，则进入只读模式
   bool paranoid_checks = true;
 
   // Use the specified object to interact with the environment,
@@ -466,6 +468,7 @@ struct DBOptions {
   // faster, so it is rarely necessary to set this option. It is provided
   // as a workaround for kernel/filesystem bugs, such as one that affected
   // fdatasync with ext4 in kernel versions prior to 3.7.
+  // 是否采用fsync，默认采用fdatasync
   bool use_fsync = false;
 
   // A list of paths where SST files can be put into, with its target size.

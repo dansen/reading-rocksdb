@@ -1,4 +1,4 @@
-//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
+﻿//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
@@ -62,7 +62,9 @@ LRUHandle* LRUHandleTable::Remove(const Slice& key, uint32_t hash) {
 }
 
 LRUHandle** LRUHandleTable::FindPointer(const Slice& key, uint32_t hash) {
+  // 获取hash的bucket
   LRUHandle** ptr = &list_[hash & (length_ - 1)];
+  // 在bucket里面顺序查找
   while (*ptr != nullptr && ((*ptr)->hash != hash || key != (*ptr)->key())) {
     ptr = &(*ptr)->next_hash;
   }
@@ -199,6 +201,7 @@ void LRUCacheShard::LRU_Insert(LRUHandle* e) {
   size_t total_charge = e->CalcTotalCharge(metadata_charge_policy_);
   if (high_pri_pool_ratio_ > 0 && (e->IsHighPri() || e->HasHit())) {
     // Inset "e" to head of LRU list.
+	// 插入在头部
     e->next = &lru_;
     e->prev = lru_.prev;
     e->prev->next = e;
@@ -273,6 +276,7 @@ Cache::Handle* LRUCacheShard::Lookup(const Slice& key, uint32_t hash) {
   LRUHandle* e = table_.Lookup(key, hash);
   if (e != nullptr) {
     assert(e->InCache());
+	// 没有引用就删除
     if (!e->HasRefs()) {
       // The entry is in LRU since it's in hash and has no external references
       LRU_Remove(e);
@@ -343,6 +347,7 @@ Status LRUCacheShard::Insert(const Slice& key, uint32_t hash, void* value,
   // Allocate the memory here outside of the mutex
   // If the cache is full, we'll have to release it
   // It shouldn't happen very often though.
+  // Handle只是一个指针，是Cache中的一个entry
   LRUHandle* e = reinterpret_cast<LRUHandle*>(
       new char[sizeof(LRUHandle) - 1 + key.size()]);
   Status s = Status::OK();
@@ -424,6 +429,7 @@ void LRUCacheShard::Erase(const Slice& key, uint32_t hash) {
     if (e != nullptr) {
       assert(e->InCache());
       e->SetInCache(false);
+	  //如果不存在外部引用，那么久删除这个handle
       if (!e->HasRefs()) {
         // The entry is in LRU since it's in hash and has no external references
         LRU_Remove(e);
@@ -437,6 +443,7 @@ void LRUCacheShard::Erase(const Slice& key, uint32_t hash) {
 
   // Free the entry here outside of mutex for performance reasons
   // last_reference will only be true if e != nullptr
+  // 在mutex外面进行销毁操作，提高性能
   if (last_reference) {
     e->Free();
   }

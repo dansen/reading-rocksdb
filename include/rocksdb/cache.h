@@ -1,4 +1,4 @@
-// Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
+﻿// Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
@@ -130,10 +130,13 @@ extern std::shared_ptr<Cache> NewClockCache(
     bool strict_capacity_limit = false,
     CacheMetadataChargePolicy metadata_charge_policy =
         kDefaultCacheMetadataChargePolicy);
+
+//缓存类
 class Cache {
  public:
   // Depending on implementation, cache entries with high priority could be less
   // likely to get evicted than low priority entries.
+  // 类型安全的枚举为
   enum class Priority { HIGH, LOW };
 
   Cache(std::shared_ptr<MemoryAllocator> allocator = nullptr)
