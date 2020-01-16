@@ -352,7 +352,7 @@ Status LRUCacheShard::Insert(const Slice& key, uint32_t hash, void* value,
       new char[sizeof(LRUHandle) - 1 + key.size()]);
   Status s = Status::OK();
   autovector<LRUHandle*> last_reference_list;
-
+   
   e->value = value;
   e->deleter = deleter;
   e->charge = charge;
@@ -366,6 +366,7 @@ Status LRUCacheShard::Insert(const Slice& key, uint32_t hash, void* value,
   memcpy(e->key_data, key.data(), key.size());
   size_t total_charge = e->CalcTotalCharge(metadata_charge_policy_);
 
+  //用大括号用于mutex上锁
   {
     MutexLock l(&mutex_);
 
